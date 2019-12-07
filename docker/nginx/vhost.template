@@ -1,0 +1,92 @@
+server{
+    listen 80;
+    server_name localhost;
+    return 301 https://$host$request_uri;
+}
+server {
+    listen 80;
+    #root /var/www/project_name/project_name;
+
+    server_name localhost;
+    index index.php index.html;
+
+    # SSL/TLS configs
+    listen 443 ssl http2;
+    ssl on;
+    ssl_certificate /etc/ssl/certs/nginx-selfsigned.crt;
+    ssl_certificate_key /etc/ssl/certs/nginx-selfsigned.key;
+    ssl_verify_client off;
+
+    client_max_body_size 100M;
+
+    error_log  /var/log/nginx/error.log;
+    access_log /var/log/nginx/access.log;
+
+    if (!-e $request_filename) {
+       rewrite  ^(.*)$  /bitrix/urlrewrite.php last;
+    }
+
+    location / {
+
+        if (-f /var/www/bitrix/index.php) {
+             root /var/www/bitrix;
+            break;
+        }
+        if (-f /var/www/bitrix/bitrixsetup.php) {
+            root /var/www/bitrix;
+            break;
+        }
+        try_files $uri $uri/ @bitrix;
+    }
+
+    location ~ \.php$ {
+        if (!-f $request_filename) {
+          rewrite  ^(.*)/index.php$  $1/ redirect;
+        }
+        fastcgi_split_path_info ^(.+\.php)(/.+)$;
+        fastcgi_pass php:9000;
+        fastcgi_index index.php;
+        include fastcgi_params;
+        fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+        fastcgi_param PATH_INFO $fastcgi_path_info;
+        fastcgi_read_timeout 300;
+    }
+
+    location ~ /upload/ {
+        client_body_buffer_size 1024m;
+        client_max_body_size 1024m;
+    }
+
+    location ~* ^.+\.(jpg|jpeg|gif|png|svg|js|css|mp3|ogg|mpe?g|avi|zip|gz|bz2?|rar|eot|otf|ttf|woff|woff2)$ {
+        log_not_found off;
+        access_log off;
+        expires 1d;
+        add_header Cache-Control public;
+    }
+
+    location ~ (/bitrix/modules|/upload/support/not_image|/bitrix/php_interface|local/modules|local/php_interface) {
+        deny all;
+    }
+
+    location ~ /.git/ {
+        deny all;
+    }
+
+    location ~ /vendor/ {
+        deny all;
+    }
+
+    location ~ /composer {
+        deny all;
+    }
+
+    location ~ /.gitignore {
+        deny all;
+    }
+
+    error_page 404 /404.html;
+
+    location /404.html {
+
+    }
+}

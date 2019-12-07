@@ -1,0 +1,12 @@
+.idea
+.env
+docker/certs/*
+!docker/certs/README.md
+docker/data/
+docker/logs/
+docker/nginx/*.conf
+install/db/*.gz
+install/db/*.sql
+public/*
+!public/*.md
+forntend/*
